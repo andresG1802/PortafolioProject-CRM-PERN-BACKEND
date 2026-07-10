@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+enum Role {
+  ADMIN
+  VENDEDOR
+}
+
+enum EstadoCliente {
+  ACTIVO
+  INACTIVO
+}
+
+enum EtapaOportunidad {
+  NUEVO
+  CONTACTADO
+  PROPUESTA
+  NEGOCIACION
+  GANADA
+  PERDIDA
+}
+
+enum TipoTarea {
+  LLAMADA
+  REUNION
+  EMAIL
+  OTRO
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  email     String   @unique @db.VarChar(150)
+  password  String   @db.VarChar
+  role      Role     @default(VENDEDOR)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  clientes      Cliente[]
+  oportunidades Oportunidad[]
+  tareas        Tarea[]
+  notas         Nota[]
+}
+
+model Cliente {
+  id        Int           @id @default(autoincrement())
+  nombre    String        @db.VarChar(150)
+  empresa   String?       @db.VarChar(150)
+  email     String?       @db.VarChar(150)
+  telefono  String?       @db.VarChar(30)
+  direccion String?       @db.VarChar(200)
+  estado    EstadoCliente @default(ACTIVO)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  contactos     Contacto[]
+  oportunidades Oportunidad[]
+  tareas        Tarea[]
+  notas         Nota[]
+}
+
+model Contacto {
+  id       Int     @id @default(autoincrement())
+  nombre   String  @db.VarChar(150)
+  cargo    String? @db.VarChar(100)
+  email    String? @db.VarChar(150)
+  telefono String? @db.VarChar(30)
+
+  clienteId Int
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+}
+
+model Oportunidad {
+  id                  Int              @id @default(autoincrement())
+  titulo              String           @db.VarChar(150)
+  descripcion         String?
+  monto               Decimal          @db.Decimal(12, 2)
+  etapa               EtapaOportunidad @default(NUEVO)
+  fechaCierreEstimada DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  clienteId Int
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  tareas Tarea[]
+  notas  Nota[]
+}
+
+model Tarea {
+  id               Int       @id @default(autoincrement())
+  titulo           String    @db.VarChar(150)
+  descripcion      String?
+  tipo             TipoTarea @default(OTRO)
+  fechaVencimiento DateTime
+  completada       Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  clienteId Int?
+  cliente   Cliente? @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  oportunidadId Int?
+  oportunidad   Oportunidad? @relation(fields: [oportunidadId], references: [id], onDelete: Cascade)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+}
+
+model Nota {
+  id        Int      @id @default(autoincrement())
+  contenido String
+  createdAt DateTime @default(now())
+
+  clienteId Int?
+  cliente   Cliente? @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  oportunidadId Int?
+  oportunidad   Oportunidad? @relation(fields: [oportunidadId], references: [id], onDelete: Cascade)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+}
